@@ -1,0 +1,17 @@
+services:
+  ipp-sink:
+    build: .
+    container_name: ipp-sink
+    ports:
+      - "632:631" # IPP endpoint
+      - "8080:8080" # Web UI
+    environment:
+      PRINTER_NAME: SinkPrinter
+      PRINTER_INFO: "IPP Sink (dev)"
+      PRINTER_LOCATION: "Docker"
+    volumes:
+      - ipp-jobs:/var/spool/cups-pdf/jobs
+    restart: unless-stopped
+
+volumes:
+  ipp-jobs:
