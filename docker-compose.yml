@@ -5,13 +5,16 @@ services:
     ports:
       - "632:631" # IPP endpoint
       - "8080:8080" # Web UI
+      - "9100:9100" # ESC/POS raw TCP
     environment:
       PRINTER_NAME: SinkPrinter
       PRINTER_INFO: "IPP Sink (dev)"
       PRINTER_LOCATION: "Docker"
     volumes:
       - ipp-jobs:/var/spool/cups-pdf/jobs
+      - escpos-jobs:/var/spool/escpos-jobs
     restart: unless-stopped
 
 volumes:
   ipp-jobs:
+  escpos-jobs:

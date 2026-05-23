@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         printer-driver-cups-pdf \
         python3 \
         python3-flask \
+        python3-pil \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -33,16 +34,17 @@ RUN sed -i \
         -e 's|^#\?\s*Grp\s\+.*|Grp lp|' \
         -e 's|^#\?\s*LogType\s\+.*|LogType 7|' \
         /etc/cups/cups-pdf.conf \
-    && mkdir -p /var/spool/cups-pdf/jobs /var/spool/cups-pdf/SPOOL /run/cups \
-    && chown -R root:lp /var/spool/cups-pdf /run/cups \
-    && chmod -R 0775 /var/spool/cups-pdf
+    && mkdir -p /var/spool/cups-pdf/jobs /var/spool/cups-pdf/SPOOL /run/cups /var/spool/escpos-jobs \
+    && chown -R root:lp /var/spool/cups-pdf /run/cups /var/spool/escpos-jobs \
+    && chmod -R 0775 /var/spool/cups-pdf \
+    && chmod 0775 /var/spool/escpos-jobs
 
-COPY webui.py /opt/webui/webui.py
+COPY webui.py escpos_parser.py escpos_server.py /opt/webui/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 631 8080
+EXPOSE 631 8080 9100
 
-VOLUME ["/var/spool/cups-pdf/jobs"]
+VOLUME ["/var/spool/cups-pdf/jobs", "/var/spool/escpos-jobs"]
 
 ENTRYPOINT ["/entrypoint.sh"]

@@ -1,17 +1,20 @@
-# IPP Sink
+# Printer Sink
 
-A Docker container that pretends to be an IPP (network) printer. Every job
-it receives is rendered to PDF and shown in a small web UI, so you can
-inspect what a client is actually sending.
+A Docker container that pretends to be a network printer on two protocols
+at once — **IPP** (renders to PDF via CUPS) and **ESC/POS** (raw TCP on
+port 9100, the JetDirect / receipt-printer protocol). Every job it
+receives is captured and shown in a small web UI with separate tabs, so
+you can inspect what a client is actually sending.
 
-Built on CUPS + `cups-pdf` + a tiny Flask web UI — no custom IPP parsing.
+Built on CUPS + `cups-pdf` + a tiny Flask web UI + an in-process TCP sink.
 
 ## Ports
 
 | Port | Purpose                                                   |
 |------|-----------------------------------------------------------|
 | 631  | IPP endpoint (and the CUPS admin web UI at `http://host:631/`) |
-| 8080 | Captured-jobs web UI                                      |
+| 8080 | Captured-jobs web UI (two tabs: IPP / PDF, ESC/POS)       |
+| 9100 | ESC/POS raw TCP endpoint                                  |
 
 ## Run
 
@@ -46,6 +49,31 @@ ipp://HOST:631/printers/SinkPrinter
 
 Every submitted job appears in the web UI as a PDF you can view or download.
 
+## Send ESC/POS to it
+
+ESC/POS thermal-printer clients should target raw TCP **port 9100**.
+Every TCP connection becomes one captured job.
+
+- **`python-escpos`**:
+  ```python
+  from escpos.printer import Network
+  p = Network("HOST", 9100)
+  p.text("Hello world\n")
+  p.set(align="center", bold=True, double_height=True)
+  p.text("RECEIPT\n")
+  p.cut()
+  ```
+- **`nc` / shell**:
+  ```sh
+  printf '\x1b@\x1ba\x01RECEIPT\n\x1bE\x01TOTAL: 9.99\x1bE\x00\n\n\n\x1dV\x00' \
+      | nc HOST 9100
+  ```
+- Any node / Go / Rust ESC/POS lib with a "Network" or TCP driver works.
+
+Open the **ESC/POS** tab in the web UI to see captured jobs rendered as a
+receipt (text, bold, underline, alignment, double-size, cuts, raster
+images). The raw `.bin` is also downloadable.
+
 ## Config
 
 Environment variables on the container:
@@ -55,9 +83,11 @@ Environment variables on the container:
 | `PRINTER_NAME`     | `SinkPrinter`     | Queue name (and part of IPP URL) |
 | `PRINTER_INFO`     | `IPP Sink (dev)`  | Human-readable description       |
 | `PRINTER_LOCATION` | `Docker`          | Location string                  |
+| `ESCPOS_PORT`      | `9100`            | TCP port the ESC/POS sink listens on |
 
-Captured jobs live in the `ipp-jobs` volume
-(`/var/spool/cups-pdf/jobs` inside the container).
+Captured jobs live in two volumes:
+- `ipp-jobs`    → `/var/spool/cups-pdf/jobs` (PDFs from IPP)
+- `escpos-jobs` → `/var/spool/escpos-jobs`   (raw `.bin` ESC/POS streams)
 
 ## Caveats
 
