@@ -56,11 +56,14 @@ def _esc(s: str) -> str:
 
 
 def _raster_to_png_b64(width_bytes: int, height: int, data: bytes) -> str | None:
-    """Convert ESC/POS raster (1bpp, MSB-first per byte, row-major) to base64 PNG."""
+    """Convert ESC/POS raster (1bpp, MSB-first per byte, row-major) to base64 PNG.
+
+    Black dots are opaque; non-printed pixels are transparent so the paper
+    background shows through (like real thermal output)."""
     if not HAS_PIL or width_bytes <= 0 or height <= 0:
         return None
     px_w = width_bytes * 8
-    img = Image.new("1", (px_w, height), color=1)  # 1 = white
+    img = Image.new("LA", (px_w, height), (0, 0))  # transparent
     pixels = img.load()
     idx = 0
     for y in range(height):
@@ -71,7 +74,7 @@ def _raster_to_png_b64(width_bytes: int, height: int, data: bytes) -> str | None
             idx += 1
             for bit in range(8):
                 if byte & (0x80 >> bit):
-                    pixels[xb * 8 + bit, y] = 0  # black
+                    pixels[xb * 8 + bit, y] = (0, 255)  # opaque black
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("ascii")
@@ -91,20 +94,20 @@ def render_html(data: bytes) -> str:
             line_segs.append((cur_text, style.copy()))
             cur_text = ""
 
-    def flush_line():
+    def flush_line(emit_blank: bool = True):
         flush_text()
         if line_segs:
             inner = "".join(
                 (f'<span style="{s.css()}">{_esc(t)}</span>' if s.css() else _esc(t))
                 for t, s in line_segs
             )
-        else:
-            inner = "&nbsp;"
-        blocks.append(f'<div class="line align-{align}">{inner}</div>')
-        line_segs.clear()
+            blocks.append(f'<div class="line align-{align}">{inner}</div>')
+            line_segs.clear()
+        elif emit_blank:
+            blocks.append(f'<div class="line align-{align}">&nbsp;</div>')
 
     def add_block(html: str):
-        flush_line()
+        flush_line(emit_blank=False)
         blocks.append(html)
 
     i = 0
@@ -302,5 +305,5 @@ def render_html(data: bytes) -> str:
             cur_text += bytes([b]).decode("cp437", "replace")
             i += 1
 
-    flush_line()
+    flush_line(emit_blank=False)
     return "\n".join(blocks)

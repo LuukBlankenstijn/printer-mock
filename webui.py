@@ -284,7 +284,7 @@ VIEW_HTML = """
     background: #fdfcf6; padding: 0 6px;
     color: #999; font-size: 10px; font-style: italic;
   }
-  .paper .img-wrap { margin: 6px 0; }
+  .paper .img-wrap { margin: 0; line-height: 0; }
   .paper .img-wrap.align-center { text-align: center; }
   .paper .img-wrap.align-right  { text-align: right; }
   .paper img { max-width: 100%; height: auto; }
