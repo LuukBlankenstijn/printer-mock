@@ -263,7 +263,7 @@ VIEW_HTML = """
   /* 80mm thermal receipt feel. 384px ≈ 80mm at 4.8 px/mm */
   .paper {
     background: #fdfcf6; color: #111;
-    width: 384px; padding: 24px 16px;
+    width: 384px; padding: 0;
     font-family: ui-monospace, "Courier New", monospace;
     font-size: 14px; line-height: 1.35;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
@@ -276,7 +276,7 @@ VIEW_HTML = """
   .paper .note { color: #888; font-style: italic; font-size: 12px; margin: 4px 0; }
   .paper hr.cut {
     border: none; border-top: 2px dashed #b9b3a0;
-    margin: 16px -16px 16px; position: relative;
+    margin: 16px 0; position: relative;
   }
   .paper hr.cut::before {
     content: "✂  paper cut"; position: absolute;
